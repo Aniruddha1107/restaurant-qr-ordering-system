@@ -237,9 +237,19 @@ function App() {
       {!isAuthenticated ? (
         <div className="login-card" id="login-container">
           <h2>Welcome</h2>
-          <p>Please enter your mobile number to view our digital menu and place an order.</p>
+          {!restaurantId || !tableId ? (
+            <div className="qr-scan-warning" id="qr-warning-message" style={{ textAlign: 'center', padding: '20px 0' }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
+              <h3 style={{ color: 'var(--accent)', marginBottom: '10px' }}>QR Code Scan Required</h3>
+              <p style={{ color: 'var(--text-d)', fontSize: '14px', lineHeight: '1.6' }}>
+                Please scan the QR code located on your dining table to access our digital menu, call for service, and place orders.
+              </p>
+            </div>
+          ) : (
+            <>
+              <p>Please enter your mobile number to view our digital menu and place an order.</p>
 
-          {!otpSent ? (
+              {!otpSent ? (
             <form onSubmit={handleSendOTP} id="otp-request-form">
               <div className="form-group">
                 <label htmlFor="mobile-input">Mobile Number</label>
@@ -290,6 +300,8 @@ function App() {
                 Change Phone Number
               </button>
             </form>
+          )}
+          </>
           )}
         </div>
       ) : (

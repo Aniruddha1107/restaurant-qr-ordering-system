@@ -19,9 +19,12 @@ vi.mock('./services/api', () => ({
 beforeEach(() => {
   vi.clearAllMocks();
   localStorage.clear();
+  // Set default window location query params
+  delete window.location;
+  window.location = new URL('http://localhost/?restaurant=1&table=12');
 });
 
-test('renders welcome login header by default', () => {
+test('renders welcome login header and input field when table context is active', () => {
   render(
     <AuthProvider>
       <App />
@@ -29,6 +32,20 @@ test('renders welcome login header by default', () => {
   );
   expect(screen.getByText(/Welcome/i)).toBeInTheDocument();
   expect(screen.getByLabelText(/Mobile Number/i)).toBeInTheDocument();
+});
+
+test('displays QR scan warning when table context is missing', () => {
+  // Set location with missing query params
+  delete window.location;
+  window.location = new URL('http://localhost/');
+
+  render(
+    <AuthProvider>
+      <App />
+    </AuthProvider>
+  );
+  expect(screen.getByText(/QR Code Scan Required/i)).toBeInTheDocument();
+  expect(screen.queryByLabelText(/Mobile Number/i)).not.toBeInTheDocument();
 });
 
 test('allows typing mobile and displays OTP verification view on success', async () => {
