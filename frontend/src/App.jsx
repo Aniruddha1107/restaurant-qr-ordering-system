@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 import { payWithRazorpay } from './services/payment';
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = window.location.port === '5173' ? 'http://localhost:8000' : '';
 
 const MENU_ITEMS = [
   {
