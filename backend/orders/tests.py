@@ -61,3 +61,48 @@ class OrdersBillingTestCase(TestCase):
         self.assertEqual(bill.total, 746.86)
         self.assertFalse(bill.is_paid)
         self.assertEqual(str(bill), f"Bill for Order #{self.order.id} - Total: ₹746.86 (Unpaid)")
+
+
+from rest_framework.test import APITestCase
+from django.urls import reverse
+from rest_framework import status
+
+class OrderCreateAPITestCase(APITestCase):
+    def setUp(self):
+        self.restaurant = Restaurant.objects.create(name="Red Velvet Bistro")
+        self.table = Table.objects.create(restaurant=self.restaurant, number="12")
+        self.user = User.objects.create_user(username="testuser", mobile="+1234567890", password="password123")
+        self.category = Category.objects.create(name="Mains")
+        self.menu_item = MenuItem.objects.create(
+            category=self.category,
+            name="Sriracha Burger",
+            price=349.00
+        )
+        self.create_order_url = reverse('create_order')
+
+    def test_create_order_authenticated_success(self):
+        self.client.force_authenticate(user=self.user)
+        payload = {
+            "table_id": self.table.id,
+            "items": [
+                {
+                    "menu_item_id": self.menu_item.id,
+                    "quantity": 2,
+                    "notes": "Extra spicy please"
+                }
+            ]
+        }
+        response = self.client.post(self.create_order_url, payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['status'], 'success')
+        self.assertEqual(response.data['total_items'], 1)
+        self.assertTrue(Order.objects.filter(table=self.table, user=self.user).exists())
+
+    def test_create_order_unauthenticated_fails(self):
+        payload = {
+            "table_id": self.table.id,
+            "items": []
+        }
+        response = self.client.post(self.create_order_url, payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
