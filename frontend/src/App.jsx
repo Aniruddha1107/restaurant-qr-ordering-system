@@ -180,19 +180,38 @@ function CustomerMenu() {
 
     setLoading(true);
     try {
-      // Step A: Create order on Django backend using Axios API Client
-      const response = await api.post('/api/payment/create-order/', { amount: total });
+      // Step A: Create order on Django backend first
+      const orderPayload = {
+        table_id: tableId,
+        items: cartItems.map(item => ({
+          menu_item_id: item.id,
+          quantity: item.quantity,
+          notes: ""
+        }))
+      };
+      
+      const orderResponse = await api.post('/api/orders/', orderPayload);
+      const djangoOrderId = orderResponse.data.order_id;
+
+      // Step B: Generate Bill and create Razorpay order
+      const response = await api.post('/api/payment/create-order/', { 
+        order_id: djangoOrderId 
+      });
       const orderData = response.data;
 
-      // Step B: Trigger Razorpay Checkout dialog
+      // Step C: Trigger Razorpay Checkout dialog
       await payWithRazorpay({
         amount: orderData.amount,
         orderId: orderData.order_id,
         keyId: orderData.key_id,
         onSuccess: async (paymentDetails) => {
-          // Step C: Verify payment signature on Django backend using Axios API Client
+          // Step D: Verify payment signature on Django backend
           try {
-            const verifyResponse = await api.post('/api/payment/verify-payment/', paymentDetails);
+            const verifyPayload = {
+              ...paymentDetails,
+              order_id: djangoOrderId
+            };
+            const verifyResponse = await api.post('/api/payment/verify-payment/', verifyPayload);
             if (verifyResponse.status === 200) {
               setCart({});
               showToast('Order placed successfully! Payment verified.', 'success');

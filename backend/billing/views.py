@@ -19,18 +19,51 @@ if hasattr(settings, 'RAZORPAY_KEY_ID') and hasattr(settings, 'RAZORPAY_KEY_SECR
 
 class CreateRazorpayOrderView(APIView):
     def post(self, request):
-        amount = request.data.get("amount")  # in INR
-        if not amount:
-            return Response({"error": "Amount is required"}, status=status.HTTP_400_BAD_REQUEST)
+        order_id = request.data.get("order_id")
+        amount = request.data.get("amount")
         
-        # Razorpay expects amount in paise (1 INR = 100 paise)
-        amount_paise = int(float(amount) * 100)
-        
+        if order_id:
+            try:
+                order = Order.objects.get(id=order_id)
+                bill, created = Bill.objects.get_or_create(
+                    order=order,
+                    defaults={
+                        'subtotal': 0,
+                        'gst': 0,
+                        'service_charge': 0,
+                        'total': 0
+                    }
+                )
+                if created or bill.total == 0:
+                    subtotal = sum(item.price * item.quantity for item in order.items.all())
+                    gst = subtotal * decimal.Decimal('0.05')
+                    service_charge = subtotal * decimal.Decimal('0.02')
+                    total = subtotal + gst + service_charge
+                    bill.subtotal = subtotal
+                    bill.gst = gst
+                    bill.service_charge = service_charge
+                    bill.total = total
+                    bill.save()
+                
+                amount_paise = int(bill.total * 100)
+            except Order.DoesNotExist:
+                return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
+        elif amount:
+            amount_paise = int(float(amount) * 100)
+        else:
+            return Response({"error": "order_id or amount is required"}, status=status.HTTP_400_BAD_REQUEST)
+            
         if not client:
-            # Mock order ID for local test run if client couldn't be initialized
+            order_id_str = f"order_mock_{order_id or '123'}"
+            if order_id:
+                try:
+                    bill.razorpay_order_id = order_id_str
+                    bill.save()
+                except:
+                    pass
             return Response({
                 "status": "mock_success",
-                "order_id": "order_mock12345",
+                "order_id": order_id_str,
                 "amount": amount_paise,
                 "currency": "INR",
                 "key_id": getattr(settings, 'RAZORPAY_KEY_ID', 'mock_key')
@@ -42,12 +75,17 @@ class CreateRazorpayOrderView(APIView):
                 "currency": "INR",
                 "payment_capture": 1
             }
-            order = client.order.create(data=order_data)
+            razorpay_order = client.order.create(data=order_data)
+            
+            if order_id:
+                bill.razorpay_order_id = razorpay_order["id"]
+                bill.save()
+                
             return Response({
                 "status": "success",
-                "order_id": order["id"],
-                "amount": order["amount"],
-                "currency": order["currency"],
+                "order_id": razorpay_order["id"],
+                "amount": razorpay_order["amount"],
+                "currency": razorpay_order["currency"],
                 "key_id": settings.RAZORPAY_KEY_ID
             })
         except Exception as e:
