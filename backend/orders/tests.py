@@ -124,7 +124,15 @@ class OrderListAndStatusAPITestCase(APITestCase):
         self.table = Table.objects.create(restaurant=self.restaurant, number="12")
         self.customer = User.objects.create_user(username="customer", mobile="+1111111111", role="customer", password="password123")
         self.chef = User.objects.create_user(username="chef", mobile="+2222222222", role="chef", password="password123")
+        self.category = Category.objects.create(name="Mains")
+        self.menu_item = MenuItem.objects.create(category=self.category, name="Sriracha Burger", price=349.00)
         self.order = Order.objects.create(table=self.table, user=self.customer, status=Order.STATUS_PENDING)
+        self.order_item = OrderItem.objects.create(order=self.order, menu_item=self.menu_item, quantity=2, price=349.00)
+        
+        from inventory.models import RawMaterial, Recipe
+        self.raw_mat = RawMaterial.objects.create(name="Burger Bun", quantity=10.00, safety_threshold=2.00)
+        self.recipe = Recipe.objects.create(menu_item=self.menu_item, raw_material=self.raw_mat, quantity_needed=1.00)
+        
         self.list_orders_url = reverse('list_orders')
         self.update_status_url = reverse('update_order_status', kwargs={'order_id': self.order.id})
 
@@ -154,5 +162,14 @@ class OrderListAndStatusAPITestCase(APITestCase):
         payload = {"status": Order.STATUS_PREPARING}
         response = self.client.patch(self.update_status_url, payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_recipe_deduction_on_prepare(self):
+        self.assertEqual(self.raw_mat.quantity, 10.00)
+        self.client.force_authenticate(user=self.chef)
+        payload = {"status": Order.STATUS_PREPARING}
+        response = self.client.patch(self.update_status_url, payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.raw_mat.refresh_from_db()
+        self.assertEqual(self.raw_mat.quantity, 8.00)
 
 
