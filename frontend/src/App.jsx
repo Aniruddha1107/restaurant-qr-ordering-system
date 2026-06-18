@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import { payWithRazorpay } from './services/payment';
-
-const API_BASE = window.location.port === '5173' ? 'http://localhost:8000' : '';
+import { useAuth } from './context/AuthContext';
+import api from './services/api';
 
 const MENU_ITEMS = [
   {
@@ -40,12 +40,13 @@ function App() {
   const [restaurantId, setRestaurantId] = useState(null);
   const [tableId, setTableId] = useState(null);
 
-  // Authentication State
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // Auth Context Global States
+  const { isAuthenticated, mobile: globalMobile, sendOtp, verifyOtp, logout } = useAuth();
+
+  // Local Auth UI States
   const [mobile, setMobile] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState('');
-  const [accessToken, setAccessToken] = useState('');
   const [loading, setLoading] = useState(false);
 
   // Cart State
@@ -54,7 +55,7 @@ function App() {
   // Toast Notification State
   const [toast, setToast] = useState(null);
 
-  // Initialize and check query params & local token
+  // Initialize and check query params & local mobile
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const rId = params.get('restaurant');
@@ -62,14 +63,10 @@ function App() {
     setRestaurantId(rId);
     setTableId(tId);
 
-    const savedToken = localStorage.getItem('access_token');
-    const savedMobile = localStorage.getItem('mobile_number');
-    if (savedToken && savedMobile) {
-      setAccessToken(savedToken);
-      setMobile(savedMobile);
-      setIsAuthenticated(true);
+    if (globalMobile) {
+      setMobile(globalMobile);
     }
-  }, []);
+  }, [globalMobile]);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -84,25 +81,14 @@ function App() {
     if (!mobile) return showToast('Please enter a valid mobile number.', 'error');
     
     setLoading(true);
-    try {
-      const response = await fetch(`${API_BASE}/api/auth/send-otp/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mobile }),
-      });
-      const data = await response.json();
-      
-      if (response.ok) {
-        setOtpSent(true);
-        showToast('OTP sent successfully! Check django console.', 'success');
-      } else {
-        showToast(data.error || 'Failed to send OTP.', 'error');
-      }
-    } catch (err) {
-      showToast('Network error while sending OTP.', 'error');
-      console.error(err);
-    } finally {
-      setLoading(false);
+    const res = await sendOtp(mobile);
+    setLoading(false);
+    
+    if (res.success) {
+      setOtpSent(true);
+      showToast('OTP sent successfully! Check django console.', 'success');
+    } else {
+      showToast(res.error, 'error');
     }
   };
 
@@ -112,39 +98,19 @@ function App() {
     if (!otpCode) return showToast('Please enter the 6-digit OTP.', 'error');
 
     setLoading(true);
-    try {
-      const response = await fetch(`${API_BASE}/api/auth/verify-otp/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mobile, code: otpCode }),
-      });
-      const data = await response.json();
+    const res = await verifyOtp(mobile, otpCode);
+    setLoading(false);
 
-      if (response.ok) {
-        localStorage.setItem('access_token', data.access);
-        localStorage.setItem('refresh_token', data.refresh);
-        localStorage.setItem('mobile_number', mobile);
-        setAccessToken(data.access);
-        setIsAuthenticated(true);
-        showToast('Logged in successfully.', 'success');
-      } else {
-        showToast(data.error || 'Invalid OTP code.', 'error');
-      }
-    } catch (err) {
-      showToast('Network error during OTP verification.', 'error');
-      console.error(err);
-    } finally {
-      setLoading(false);
+    if (res.success) {
+      showToast('Logged in successfully.', 'success');
+    } else {
+      showToast(res.error, 'error');
     }
   };
 
   // 3. Logout
   const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    localStorage.removeItem('mobile_number');
-    setAccessToken('');
-    setIsAuthenticated(false);
+    logout();
     setOtpSent(false);
     setOtpCode('');
     setCart({});
@@ -198,44 +164,24 @@ function App() {
 
     setLoading(true);
     try {
-      // Step A: Create order on Django backend
-      const response = await fetch(`${API_BASE}/api/payment/create-order/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ amount: total }),
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create payment order on backend.');
-      }
+      // Step A: Create order on Django backend using Axios API Client
+      const response = await api.post('/api/payment/create-order/', { amount: total });
+      const orderData = response.data;
 
       // Step B: Trigger Razorpay Checkout dialog
       await payWithRazorpay({
-        amount: data.amount,
-        orderId: data.order_id,
-        keyId: data.key_id,
+        amount: orderData.amount,
+        orderId: orderData.order_id,
+        keyId: orderData.key_id,
         onSuccess: async (paymentDetails) => {
-          // Step C: Verify payment signature on Django backend
+          // Step C: Verify payment signature on Django backend using Axios API Client
           try {
-            const verifyResponse = await fetch(`${API_BASE}/api/payment/verify-payment/`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${accessToken}`,
-              },
-              body: JSON.stringify(paymentDetails),
-            });
-            const verifyData = await verifyResponse.json();
-
-            if (verifyResponse.ok) {
+            const verifyResponse = await api.post('/api/payment/verify-payment/', paymentDetails);
+            if (verifyResponse.status === 200) {
               setCart({});
               showToast('Order placed successfully! Payment verified.', 'success');
             } else {
-              showToast(verifyData.message || 'Signature verification failed.', 'error');
+              showToast('Signature verification failed.', 'error');
             }
           } catch (err) {
             showToast('Network error verifying payment.', 'error');
@@ -246,7 +192,8 @@ function App() {
         },
       });
     } catch (err) {
-      showToast(err.message || 'Payment system error.', 'error');
+      const errMsg = err.response?.data?.error || err.message || 'Payment system error.';
+      showToast(errMsg, 'error');
       console.error(err);
     } finally {
       setLoading(false);

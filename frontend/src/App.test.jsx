@@ -2,9 +2,19 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { expect, test, vi, beforeEach } from 'vitest';
 import App from './App';
+import { AuthProvider } from './context/AuthContext';
+import api from './services/api';
 
-// Mock global fetch
-global.fetch = vi.fn();
+// Mock the api service module
+vi.mock('./services/api', () => ({
+  default: {
+    post: vi.fn(),
+    interceptors: {
+      request: { use: vi.fn(), eject: vi.fn() },
+      response: { use: vi.fn(), eject: vi.fn() }
+    }
+  }
+}));
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -12,18 +22,26 @@ beforeEach(() => {
 });
 
 test('renders welcome login header by default', () => {
-  render(<App />);
+  render(
+    <AuthProvider>
+      <App />
+    </AuthProvider>
+  );
   expect(screen.getByText(/Welcome/i)).toBeInTheDocument();
   expect(screen.getByLabelText(/Mobile Number/i)).toBeInTheDocument();
 });
 
 test('allows typing mobile and displays OTP verification view on success', async () => {
-  fetch.mockResolvedValueOnce({
-    ok: true,
-    json: async () => ({ status: 'success', message: 'OTP sent successfully.' }),
+  api.post.mockResolvedValueOnce({
+    status: 200,
+    data: { status: 'success', message: 'OTP sent successfully.' }
   });
 
-  render(<App />);
+  render(
+    <AuthProvider>
+      <App />
+    </AuthProvider>
+  );
   const input = screen.getByLabelText(/Mobile Number/i);
   fireEvent.change(input, { target: { value: '+1234567890' } });
   expect(input.value).toBe('+1234567890');
