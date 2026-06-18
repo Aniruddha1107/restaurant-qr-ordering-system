@@ -1,7 +1,8 @@
 import random
 import requests
 from django.conf import settings
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
+User = get_user_model()
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -61,8 +62,11 @@ class VerifyOTPView(APIView):
         # Success: Delete OTP or mark verified if we want (deleting prevents replay attacks)
         otp.delete()
         
-        # Get or create Django user using mobile as username
-        user, created = User.objects.get_or_create(username=mobile)
+        # Get or create Django user using mobile as username and mobile
+        user, created = User.objects.get_or_create(
+            username=mobile,
+            defaults={'mobile': mobile, 'role': User.ROLE_CUSTOMER}
+        )
         
         # Generate SimpleJWT tokens
         refresh = RefreshToken.for_user(user)
