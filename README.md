@@ -11,6 +11,14 @@ A full‑stack, enterprise‑grade Restaurant ERP platform that enables QR‑bas
 - **Containerisation**: Docker & Docker‑Compose.
 - **CI/CD**: GitHub Actions.
 
+## 📚 System Documentation
+
+- [System Architecture](file:///d:/projects%202026/restaurant-qr-ordering-system/docs/architecture.md)
+- [Database Design & Schema](file:///d:/projects%202026/restaurant-qr-ordering-system/docs/database_design.md)
+- [API Specifications](file:///d:/projects%202026/restaurant-qr-ordering-system/docs/api_spec.md)
+- [Product Requirements (PRD)](file:///d:/projects%202026/restaurant-qr-ordering-system/docs/prd.md)
+- [System Design (ERD, Flows)](file:///d:/projects%202026/restaurant-qr-ordering-system/docs/system_design.md)
+
 ## Quick Start (Local Development)
 
 ```bash
