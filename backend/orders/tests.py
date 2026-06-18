@@ -106,3 +106,15 @@ class OrderCreateAPITestCase(APITestCase):
         response = self.client.post(self.create_order_url, payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
+
+from channels.testing import WebsocketCommunicator
+from config.asgi import application
+
+class OrderConsumerTestCase(APITestCase):
+    async def test_order_consumer_connect(self):
+        communicator = WebsocketCommunicator(application, "ws/orders/")
+        connected, subprotocol = await communicator.connect()
+        self.assertTrue(connected)
+        await communicator.disconnect()
+
+
