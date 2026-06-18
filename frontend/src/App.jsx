@@ -52,8 +52,24 @@ function CustomerMenu() {
   // Cart State
   const [cart, setCart] = useState({});
 
+  // Table Service Call state
+  const [serviceModalOpen, setServiceModalOpen] = useState(false);
+
   // Toast Notification State
   const [toast, setToast] = useState(null);
+
+  const handleServiceRequest = async (type) => {
+    try {
+      await api.post('/api/notifications/request/', {
+        table_id: tableId,
+        request_type: type
+      });
+      showToast('Request submitted to waiter!', 'success');
+      setServiceModalOpen(false);
+    } catch (err) {
+      showToast('Failed to call waiter.', 'error');
+    }
+  };
 
   // Initialize and check query params & local mobile
   useEffect(() => {
@@ -217,9 +233,44 @@ function CustomerMenu() {
         </div>
         <div className="flex-align-center">
           {restaurantId && tableId && (
-            <span className="table-badge" id="table-display">
-              Table {tableId} (Rest. {restaurantId})
-            </span>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', position: 'relative' }}>
+              <span className="table-badge" id="table-display">
+                Table {tableId}
+              </span>
+              <button
+                className="btn btn-secondary"
+                style={{ width: 'auto', padding: '6px 14px', fontSize: '13px', display: 'flex', gap: '6px', alignItems: 'center' }}
+                onClick={() => setServiceModalOpen(!serviceModalOpen)}
+                id="btn-call-waiter"
+              >
+                🛎️ Call Service
+              </button>
+              
+              {serviceModalOpen && (
+                <div className="service-dropdown-card" id="service-dropdown" style={{
+                  position: 'absolute',
+                  top: '45px',
+                  right: '0',
+                  background: 'rgba(30, 41, 59, 0.95)',
+                  backdropFilter: 'blur(16px)',
+                  border: '1px solid var(--border)',
+                  borderRadius: '12px',
+                  padding: '12px',
+                  zIndex: 1000,
+                  boxShadow: 'var(--shadow)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                  width: '200px',
+                  animation: 'fadeIn 0.2s ease forwards'
+                }}>
+                  <h4 style={{ margin: '0 0 4px 0', fontSize: '11px', color: '#c5a880', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Call Table Service</h4>
+                  <button className="kds-btn btn-accept" style={{ textAlign: 'left', justifyContent: 'flex-start', margin: 0 }} onClick={() => handleServiceRequest('water')}>💧 Water Bottle</button>
+                  <button className="kds-btn btn-accept" style={{ textAlign: 'left', justifyContent: 'flex-start', margin: 0 }} onClick={() => handleServiceRequest('assistance')}>🙋 Assistance</button>
+                  <button className="kds-btn btn-accept" style={{ textAlign: 'left', justifyContent: 'flex-start', margin: 0 }} onClick={() => handleServiceRequest('bill')}>💳 Request Bill</button>
+                </div>
+              )}
+            </div>
           )}
           {isAuthenticated && (
             <button
@@ -414,6 +465,7 @@ function CustomerMenu() {
 }
 
 import Kds from './Kds';
+import Waiter from './Waiter';
 import { Routes, Route } from 'react-router-dom';
 
 function App() {
@@ -421,6 +473,7 @@ function App() {
     <Routes>
       <Route path="/" element={<CustomerMenu />} />
       <Route path="/kds" element={<Kds />} />
+      <Route path="/waiter" element={<Waiter />} />
     </Routes>
   );
 }

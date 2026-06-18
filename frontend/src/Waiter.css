@@ -1,0 +1,150 @@
+.waiter-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  color: var(--text);
+  font-family: var(--sans);
+  background: #090a0f;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.waiter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: rgba(30, 41, 59, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow);
+}
+
+.waiter-title-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.waiter-logo {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: white;
+  font-weight: 700;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+}
+
+.waiter-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.waiter-dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  flex: 1;
+}
+
+.waiter-section {
+  background: rgba(26, 32, 44, 0.4);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  min-height: 500px;
+  box-shadow: var(--shadow);
+}
+
+.waiter-section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-h);
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 12px;
+}
+
+.waiter-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  max-height: calc(100vh - 240px);
+}
+
+.waiter-item-card {
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+  animation: fadeIn 0.3s ease;
+}
+
+.waiter-item-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.waiter-item-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.waiter-card-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: white;
+}
+
+.waiter-card-desc {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.waiter-request-tag {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+  margin-top: 4px;
+}
+
+.waiter-request-tag.tag-water {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+}
+
+.waiter-request-tag.tag-bill {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+}
+
+.waiter-no-items {
+  text-align: center;
+  padding: 60px 20px;
+  color: #6b7280;
+  font-size: 14px;
+}
