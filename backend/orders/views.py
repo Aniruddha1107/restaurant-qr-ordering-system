@@ -58,3 +58,73 @@ class OrderCreateView(APIView):
             "table_number": table.number,
             "total_items": len(order_items)
         }, status=status.HTTP_201_CREATED)
+
+class OrderListView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        if user.role in ['chef', 'waiter', 'manager']:
+            status_filter = request.query_params.get('status')
+            if status_filter:
+                orders = Order.objects.filter(status=status_filter)
+            else:
+                orders = Order.objects.exclude(status__in=[Order.STATUS_SERVED, Order.STATUS_CANCELLED])
+        else:
+            orders = Order.objects.filter(user=user)
+        
+        orders = orders.select_related('table', 'user').prefetch_related('items__menu_item').order_by('created_at')
+        
+        serialized_orders = []
+        for order in orders:
+            serialized_orders.append({
+                "id": order.id,
+                "table_id": order.table.id,
+                "table_number": order.table.number,
+                "user_id": order.user.id if order.user else None,
+                "user_mobile": order.user.mobile if order.user else None,
+                "status": order.status,
+                "created_at": order.created_at.isoformat(),
+                "updated_at": order.updated_at.isoformat(),
+                "items": [
+                    {
+                        "id": item.id,
+                        "menu_item_id": item.menu_item.id,
+                        "menu_item_name": item.menu_item.name,
+                        "menu_item_emoji": item.menu_item.emoji or "🍔",
+                        "quantity": item.quantity,
+                        "price": str(item.price),
+                        "notes": item.notes or ""
+                    }
+                    for item in order.items.all()
+                ]
+            })
+            
+        return Response(serialized_orders, status=status.HTTP_200_OK)
+
+class OrderStatusUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, order_id):
+        user = request.user
+        if user.role not in ['chef', 'waiter', 'manager']:
+            return Response({"error": "Unauthorized role"}, status=status.HTTP_403_FORBIDDEN)
+            
+        try:
+            order = Order.objects.get(id=order_id)
+        except Order.DoesNotExist:
+            return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
+            
+        new_status = request.data.get("status")
+        if not new_status or new_status not in [c[0] for c in Order.STATUS_CHOICES]:
+            return Response({"error": "Invalid or missing status"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        order.status = new_status
+        order.save()
+        
+        return Response({
+            "status": "success",
+            "message": f"Order #{order.id} status updated to {new_status}",
+            "order_id": order.id,
+            "order_status": order.status
+        }, status=status.HTTP_200_OK)

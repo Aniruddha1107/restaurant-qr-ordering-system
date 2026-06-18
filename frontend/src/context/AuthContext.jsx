@@ -6,15 +6,18 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [accessToken, setAccessToken] = useState('');
   const [mobile, setMobile] = useState('');
+  const [role, setRole] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const savedToken = localStorage.getItem('access_token');
     const savedMobile = localStorage.getItem('mobile_number');
+    const savedRole = localStorage.getItem('role');
     if (savedToken && savedMobile) {
       setAccessToken(savedToken);
       setMobile(savedMobile);
+      setRole(savedRole || '');
       setIsAuthenticated(true);
     }
     setLoading(false);
@@ -33,14 +36,16 @@ export const AuthProvider = ({ children }) => {
   const verifyOtp = async (mobileNumber, code) => {
     try {
       const response = await api.post('/api/auth/verify-otp/', { mobile: mobileNumber, code });
-      const { access, refresh } = response.data;
+      const { access, refresh, role: userRole } = response.data;
       
       localStorage.setItem('access_token', access);
       localStorage.setItem('refresh_token', refresh);
       localStorage.setItem('mobile_number', mobileNumber);
+      localStorage.setItem('role', userRole || 'customer');
       
       setAccessToken(access);
       setMobile(mobileNumber);
+      setRole(userRole || 'customer');
       setIsAuthenticated(true);
       return { success: true };
     } catch (error) {
@@ -53,13 +58,15 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
     localStorage.removeItem('mobile_number');
+    localStorage.removeItem('role');
     setAccessToken('');
     setMobile('');
+    setRole('');
     setIsAuthenticated(false);
   };
 
   return (
-    <AuthContext.Provider value={{ accessToken, mobile, isAuthenticated, loading, sendOtp, verifyOtp, logout }}>
+    <AuthContext.Provider value={{ accessToken, mobile, role, isAuthenticated, loading, sendOtp, verifyOtp, logout }}>
       {children}
     </AuthContext.Provider>
   );

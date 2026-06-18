@@ -35,7 +35,7 @@ const MENU_ITEMS = [
   },
 ];
 
-function App() {
+function CustomerMenu() {
   // Parsing restaurant & table from URL query parameters
   const [restaurantId, setRestaurantId] = useState(null);
   const [tableId, setTableId] = useState(null);
@@ -410,6 +410,18 @@ function App() {
         </div>
       )}
     </div>
+  );
+}
+
+import Kds from './Kds';
+import { Routes, Route } from 'react-router-dom';
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<CustomerMenu />} />
+      <Route path="/kds" element={<Kds />} />
+    </Routes>
   );
 }
 

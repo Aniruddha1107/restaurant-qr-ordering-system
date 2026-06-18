@@ -118,3 +118,41 @@ class OrderConsumerTestCase(APITestCase):
         await communicator.disconnect()
 
 
+class OrderListAndStatusAPITestCase(APITestCase):
+    def setUp(self):
+        self.restaurant = Restaurant.objects.create(name="Red Velvet Bistro")
+        self.table = Table.objects.create(restaurant=self.restaurant, number="12")
+        self.customer = User.objects.create_user(username="customer", mobile="+1111111111", role="customer", password="password123")
+        self.chef = User.objects.create_user(username="chef", mobile="+2222222222", role="chef", password="password123")
+        self.order = Order.objects.create(table=self.table, user=self.customer, status=Order.STATUS_PENDING)
+        self.list_orders_url = reverse('list_orders')
+        self.update_status_url = reverse('update_order_status', kwargs={'order_id': self.order.id})
+
+    def test_list_orders_customer(self):
+        self.client.force_authenticate(user=self.customer)
+        response = self.client.get(self.list_orders_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['id'], self.order.id)
+
+    def test_list_orders_chef(self):
+        self.client.force_authenticate(user=self.chef)
+        response = self.client.get(self.list_orders_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+
+    def test_update_status_chef_success(self):
+        self.client.force_authenticate(user=self.chef)
+        payload = {"status": Order.STATUS_PREPARING}
+        response = self.client.patch(self.update_status_url, payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, Order.STATUS_PREPARING)
+
+    def test_update_status_customer_forbidden(self):
+        self.client.force_authenticate(user=self.customer)
+        payload = {"status": Order.STATUS_PREPARING}
+        response = self.client.patch(self.update_status_url, payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
