@@ -1,0 +1,14 @@
+# Backend Python dependencies
+Django>=5.0,<6.0
+djangorestframework>=3.15
+djangorestframework-simplejwt>=5.3
+psycopg2-binary>=2.9
+channels>=4.0
+celery>=5.4
+redis>=5.0
+django-cors-headers>=4.3
+razorpay>=1.4.1
+requests>=2.31.0
+# Optional (for future features)
+prophet>=1.1
+scikit-learn>=1.5
