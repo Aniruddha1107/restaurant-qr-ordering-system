@@ -6,12 +6,16 @@ class User(AbstractUser):
     ROLE_CHEF = 'chef'
     ROLE_WAITER = 'waiter'
     ROLE_MANAGER = 'manager'
+    ROLE_OWNER = 'owner'
+    ROLE_RECEPTIONIST = 'receptionist'
 
     ROLE_CHOICES = [
         (ROLE_CUSTOMER, 'Customer'),
         (ROLE_CHEF, 'Chef'),
         (ROLE_WAITER, 'Waiter'),
         (ROLE_MANAGER, 'Manager'),
+        (ROLE_OWNER, 'Owner'),
+        (ROLE_RECEPTIONIST, 'Receptionist'),
     ]
 
     mobile = models.CharField(max_length=20, unique=True, blank=True, null=True)
