@@ -199,14 +199,23 @@ RAZORPAY_KEY_ID = os.environ.get("RAZORPAY_KEY_ID", "rzp_test_restaurant123")
 RAZORPAY_KEY_SECRET = os.environ.get("RAZORPAY_KEY_SECRET", "your_test_secret_here")
 
 # Django Channels Redis Backend
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [os.environ.get("REDIS_URL", "redis://redis:6379/1")],
+import sys
+if 'test' in sys.argv:
+    # Use in-memory channel layer for tests to avoid Redis dependency
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
         },
-    },
-}
+    }
+else:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [os.environ.get("REDIS_URL", "redis://redis:6379/1")],
+            },
+        },
+    }
 
 # Celery Task Broker Config
 CELERY_BROKER_URL = os.environ.get("REDIS_URL", "redis://redis:6379/0")
